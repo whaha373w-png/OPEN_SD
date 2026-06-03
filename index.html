@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>乐森机器人 SD卡一键网页挂载工具</title>
+    <meta name="description" content="通过 Web Serial API 一键激活并挂载乐森机器人的 SD 卡为移动硬盘">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+            --panel-bg: rgba(30, 41, 59, 0.45);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #06b6d4;
+            --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+            --accent-glow: 0 0 20px rgba(139, 92, 246, 0.4);
+            --success-color: #10b981;
+            --error-color: #f43f5e;
+            --warning-color: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans SC', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* Ambient glowing background blobs */
+        .ambient-glow-1 {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
+            top: 10%;
+            left: 15%;
+            z-index: -1;
+            filter: blur(40px);
+            pointer-events: none;
+        }
+
+        .ambient-glow-2 {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, rgba(0,0,0,0) 70%);
+            bottom: 10%;
+            right: 15%;
+            z-index: -1;
+            filter: blur(40px);
+            pointer-events: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 620px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            margin-bottom: 30px;
+        }
+
+        .logo-container {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            background: var(--accent-gradient);
+            box-shadow: var(--accent-glow);
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .logo-container svg {
+            width: 36px;
+            height: 36px;
+            fill: none;
+            stroke: #fff;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(to right, #ffffff, #c084fc, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .card-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--warning-color);
+            box-shadow: 0 0 10px var(--warning-color);
+        }
+
+        .status-dot.active {
+            background-color: var(--success-color);
+            box-shadow: 0 0 10px var(--success-color);
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-dot.error {
+            background-color: var(--error-color);
+            box-shadow: 0 0 10px var(--error-color);
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Device Control Section */
+        .control-panel {
+            margin-bottom: 30px;
+        }
+
+        .btn-connect {
+            position: relative;
+            background: var(--accent-gradient);
+            color: white;
+            border: none;
+            padding: 16px 36px;
+            font-size: 16px;
+            font-weight: 700;
+            border-radius: 14px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: var(--accent-glow);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-connect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
+        }
+
+        .btn-connect:active {
+            transform: translateY(1px);
+        }
+
+        .btn-connect:disabled {
+            background: #475569;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Log / Console Output style */
+        .console {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            padding: 20px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            text-align: left;
+            min-height: 180px;
+            max-height: 250px;
+            overflow-y: auto;
+            color: #38bdf8;
+            margin-bottom: 25px;
+            scroll-behavior: smooth;
+        }
+
+        .console::-webkit-scrollbar {
+            width: 6px;
+        }
+        .console::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+        .console::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+
+        .console-line {
+            margin-bottom: 6px;
+            line-height: 1.4;
+            opacity: 0;
+            transform: translateY(4px);
+            animation: slideIn 0.3s forwards;
+        }
+
+        @keyframes slideIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .line-info { color: #38bdf8; }
+        .line-success { color: #4ade80; }
+        .line-warning { color: #fbbf24; }
+        .line-error { color: #f87171; }
+
+        /* Steps progress representation */
+        .steps {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            position: relative;
+        }
+
+        .steps::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 0;
+        }
+
+        .step-progress-bar {
+            position: absolute;
+            top: 15px;
+            left: 10%;
+            height: 2px;
+            background: var(--accent-gradient);
+            z-index: 0;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .step {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 30%;
+        }
+
+        .step-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #1e293b;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .step.active .step-circle {
+            border-color: var(--accent-primary);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
+            background: var(--accent-primary);
+        }
+
+        .step.completed .step-circle {
+            border-color: var(--success-color);
+            background: var(--success-color);
+            color: #fff;
+        }
+
+        .step-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .step.active .step-label {
+            color: #fff;
+        }
+
+        footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            max-width: 500px;
+            line-height: 1.6;
+        }
+
+        footer a {
+            color: var(--accent-secondary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        footer a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        .alert-unsupported {
+            display: none;
+            background: rgba(244, 63, 94, 0.15);
+            border: 1px solid rgba(244, 63, 94, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            color: #fca5a5;
+            font-size: 14px;
+            margin-bottom: 20px;
+            text-align: left;
+            line-height: 1.5;
+        }
+
+        /* Pulse for reboot warning */
+        .reboot-warning {
+            animation: flash 1s infinite alternate;
+        }
+        @keyframes flash {
+            from { border-color: rgba(245, 158, 11, 0.3); }
+            to { border-color: rgba(245, 158, 11, 0.8); }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-glow-1"></div>
+    <div class="ambient-glow-2"></div>
+
+    <div class="container">
+        <header>
+            <div class="logo-container">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+            </div>
+            <h1 id="title-text">机器人 SD卡挂载工具</h1>
+            <p class="subtitle">通过网页端串口，一键让乐森机器人挂载并开启 SD 卡模式</p>
+        </header>
+
+        <div class="card-status">
+            <div class="status-dot" id="status-dot"></div>
+            <span id="status-text">未连接设备</span>
+        </div>
+
+        <div class="alert-unsupported" id="unsupported-alert">
+            <strong>⚠️ 浏览器不支持 Web Serial:</strong><br>
+            您的浏览器不支持串口通信。请使用 <strong>Google Chrome</strong> 或 <strong>Microsoft Edge</strong> 浏览器打开此网页，并确保在电脑端访问。
+        </div>
+
+        <div class="control-panel">
+            <button class="btn-connect" id="btn-connect">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 17l6-6-6-6M12 19h9"/>
+                </svg>
+                <span>一键连接并挂载 SD 卡</span>
+            </button>
+        </div>
+
+        <div class="console" id="console-output">
+            <div class="console-line line-info">[系统] 网页工具加载就绪。点击上方按钮开始挂载。</div>
+        </div>
+
+        <div class="steps">
+            <div class="step-progress-bar" id="step-progress"></div>
+            <div class="step" id="step-1">
+                <div class="step-circle">1</div>
+                <div class="step-label">选择串口</div>
+            </div>
+            <div class="step" id="step-2">
+                <div class="step-circle">2</div>
+                <div class="step-label">激活测试</div>
+            </div>
+            <div class="step" id="step-3">
+                <div class="step-circle">3</div>
+                <div class="step-label">挂载盘符</div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>💡 提示：本网页基于 Web Serial API 技术安全运行，数据完全在本地串口交互，不会上传任何数据。</p>
+        <p>因浏览器安全沙箱限制，网页端成功发送挂载指令后，<b>需要您手动打开电脑上的「此电脑」</b>查看新出现的盘符。</p>
+    </footer>
+
+    <script>
+        const btnConnect = document.getElementById('btn-connect');
+        const consoleOutput = document.getElementById('console-output');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const unsupportedAlert = document.getElementById('unsupported-alert');
+        const stepProgress = document.getElementById('step-progress');
+        
+        const step1 = document.getElementById('step-1');
+        const step2 = document.getElementById('step-2');
+        const step3 = document.getElementById('step-3');
+
+        // Check Web Serial API support
+        if (!('serial' in navigator)) {
+            unsupportedAlert.style.display = 'block';
+            btnConnect.disabled = true;
+        }
+
+        function log(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = `console-line line-${type}`;
+            const time = new Date().toLocaleTimeString([], { hour12: false });
+            line.textContent = `[${time}] ${message}`;
+            consoleOutput.appendChild(line);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        function updateStep(stepIndex, status) {
+            // reset all steps classes
+            const steps = [step1, step2, step3];
+            
+            if (status === 'active') {
+                steps[stepIndex - 1].className = 'step active';
+                if (stepIndex === 1) stepProgress.style.width = '0%';
+                if (stepIndex === 2) stepProgress.style.width = '40%';
+                if (stepIndex === 3) stepProgress.style.width = '80%';
+            } else if (status === 'completed') {
+                steps[stepIndex - 1].className = 'step completed';
+                if (stepIndex === 3) stepProgress.style.width = '100%';
+            } else {
+                steps[stepIndex - 1].className = 'step';
+            }
+        }
+
+        function resetSteps() {
+            step1.className = 'step';
+            step2.className = 'step';
+            step3.className = 'step';
+            stepProgress.style.width = '0%';
+        }
+
+        async function readFrameWithTimeout(port, timeoutMs = 2000) {
+            const reader = port.readable.getReader();
+            let buffer = new Uint8Array(0);
+            
+            function concatTypedArrays(a, b) {
+                const c = new Uint8Array(a.length + b.length);
+                c.set(a, 0);
+                c.set(b, a.length);
+                return c;
+            }
+            
+            const timeoutId = setTimeout(() => {
+                reader.cancel().catch(() => {});
+            }, timeoutMs);
+            
+            try {
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (value) {
+                        buffer = concatTypedArrays(buffer, value);
+                        // Search for FF FF
+                        for (let i = 0; i < buffer.length - 1; i++) {
+                            if (buffer[i] === 0xff && buffer[i+1] === 0xff) {
+                                if (buffer.length >= i + 3) {
+                                    const length = buffer[i + 2];
+                                    if (buffer.length >= i + 3 + length) {
+                                        return buffer.slice(i, i + 3 + length);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (done) break;
+                }
+            } finally {
+                clearTimeout(timeoutId);
+                reader.releaseLock();
+            }
+            return null;
+        }
+
+        async function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        btnConnect.addEventListener('click', async () => {
+            btnConnect.disabled = true;
+            resetSteps();
+            
+            statusDot.className = 'status-dot active';
+            statusText.textContent = '正在连接串口...';
+            
+            let port = null;
+            
+            try {
+                updateStep(1, 'active');
+                log('正在请求用户选择机器人串口...', 'info');
+                
+                // Request port
+                try {
+                    port = await navigator.serial.requestPort({
+                        filters: [
+                            { usbProductId: 0x4012 }
+                        ]
+                    });
+                } catch (err) {
+                    log('未过滤到特定PID设备，请求所有可用串口...', 'warning');
+                    port = await navigator.serial.requestPort();
+                }
+
+                log('已选择串口，正在打开...', 'info');
+                await port.open({ baudRate: 115200 });
+                log('串口连接成功！波特率 115200。', 'success');
+                updateStep(1, 'completed');
+                
+                updateStep(2, 'active');
+                log('发送测试激活码 (FF FF 04 46 FD 00 47)...', 'info');
+                const enterTestCmd = new Uint8Array([0xff, 0xff, 0x04, 0x46, 0xfd, 0x00, 0x47]);
+                const writer = port.writable.getWriter();
+                await writer.write(enterTestCmd);
+                writer.releaseLock();
+                
+                log('等待设备响应...', 'info');
+                const response = await readFrameWithTimeout(port, 1500);
+                let needReboot = false;
+                
+                if (response) {
+                    log(`收到响应帧: ${Array.from(response).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ')}`, 'success');
+                    if (response.length >= 6 && response[3] === 0x46 && response[4] === 0xfd) {
+                        if (response[5] === 1) {
+                            needReboot = true;
+                        }
+                    }
+                } else {
+                    log('设备没有回应，或已经处于挂载状态。继续发送挂载命令...', 'warning');
+                }
+
+                if (needReboot) {
+                    log('⚠️ 设备响应需要重启以激活模式！正在断开，请等待 5 秒重新连入...', 'warning');
+                    await port.close();
+                    
+                    for (let i = 5; i > 0; i--) {
+                        log(`等待重启中... ${i}s`, 'warning');
+                        statusText.textContent = `等待重启... ${i}s`;
+                        await sleep(1000);
+                    }
+                    
+                    log('正在尝试自动重新连接已授权串口...', 'info');
+                    statusText.textContent = '重连中...';
+                    
+                    const permittedPorts = await navigator.serial.getPorts();
+                    if (permittedPorts && permittedPorts.length > 0) {
+                        port = permittedPorts[0];
+                        await port.open({ baudRate: 115200 });
+                        log('重连成功！重新发送激活码...', 'info');
+                        const writer2 = port.writable.getWriter();
+                        await writer2.write(enterTestCmd);
+                        writer2.releaseLock();
+                        await sleep(500);
+                    } else {
+                        throw new Error('未找到已授权的重连设备，请重新点击按钮并选择设备。');
+                    }
+                }
+                
+                updateStep(2, 'completed');
+                updateStep(3, 'active');
+                
+                log('发送SD卡挂载指令 (FF FF 03 46 04 4D)...', 'info');
+                const sdcardCmd = new Uint8Array([0xff, 0xff, 0x03, 0x46, 0x04, 0x4d]);
+                const writer3 = port.writable.getWriter();
+                await writer3.write(sdcardCmd);
+                writer3.releaseLock();
+                
+                log('挂载指令发送完成！延迟释放连接...', 'info');
+                await sleep(1000);
+                
+                await port.close();
+                log('串口已成功关闭并释放！', 'info');
+                
+                updateStep(3, 'completed');
+                
+                statusDot.className = 'status-dot active';
+                statusText.textContent = '挂载指令发送成功';
+                log('✨ 挂载操作完成！现在您的电脑应该在识别新的磁盘盘符。', 'success');
+                log('👉 请手动打开电脑的「此电脑」或资源管理器以查看 SD 卡。', 'success');
+                
+            } catch (error) {
+                console.error(error);
+                statusDot.className = 'status-dot error';
+                statusText.textContent = '操作失败';
+                log(`❌ 发生错误: ${error.message || error}`, 'error');
+                resetSteps();
+                
+                if (port && port.readable) {
+                    try {
+                        await port.close();
+                    } catch(e) {}
+                }
+            } finally {
+                btnConnect.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
