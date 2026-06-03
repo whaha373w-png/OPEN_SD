@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>乐森机器人 SD卡一键网页挂载工具</title>
-    <meta name="description" content="通过 Web Serial API 一键激活并挂载乐森机器人的 SD 卡为移动硬盘">
+    <title>Robosen Robot SD Card One-Click Web Mounter</title>
+    <meta name="description" content="Activate and mount Robosen Robot's SD Card as a removable drive via Web Serial API">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -438,58 +438,58 @@
                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
             </div>
-            <h1 id="title-text">机器人 SD卡挂载工具</h1>
-            <p class="subtitle">通过网页端串口，一键让乐森机器人挂载并开启 SD 卡模式</p>
+            <h1 id="title-text">Robot SD Card Mount Tool</h1>
+            <p class="subtitle">Mount and enable SD card mode on Robosen robots via web-based serial connection</p>
         </header>
 
         <div class="card-status">
             <div class="status-dot" id="status-dot"></div>
-            <span id="status-text">未连接设备</span>
+            <span id="status-text">Device Disconnected</span>
         </div>
 
         <div class="alert-unsupported" id="unsupported-alert">
-            <strong id="unsupported-title">⚠️ 浏览器不支持 Web Serial:</strong><br>
-            <span id="unsupported-desc">您的浏览器不支持串口通信。请使用 <strong>Google Chrome</strong> 或 <strong>Microsoft Edge</strong> 浏览器打开此网页，并确保在电脑端访问。</span>
+            <strong id="unsupported-title">⚠️ Browser does not support Web Serial:</strong><br>
+            <span id="unsupported-desc">Your browser does not support serial communication. Please open this page in <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> on a desktop computer.</span>
         </div>
 
         <div class="control-panel">
             <label class="filter-option">
                 <input type="checkbox" id="chk-filter" checked>
-                <span>只过滤显示乐森机器人设备 (PID: 4012)</span>
+                <span>Filter Robosen Robot devices only (PID: 4012)</span>
             </label>
             <button class="btn-connect" id="btn-connect">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 17l6-6-6-6M12 19h9" />
                 </svg>
-                <span>一键连接并挂载 SD 卡</span>
+                <span>Connect & Mount SD Card</span>
             </button>
         </div>
 
         <div class="console" id="console-output">
-            <div class="console-line line-info">[系统] 网页工具加载就绪。点击上方按钮开始挂载。</div>
+            <div class="console-line line-info">[System] Web tool loaded and ready. Click the button above to start.</div>
         </div>
 
         <div class="steps">
             <div class="step-progress-bar" id="step-progress"></div>
             <div class="step" id="step-1">
                 <div class="step-circle">1</div>
-                <div class="step-label">选择串口</div>
+                <div class="step-label">Select Port</div>
             </div>
             <div class="step" id="step-2">
                 <div class="step-circle">2</div>
-                <div class="step-label">激活测试</div>
+                <div class="step-label">Activate Test</div>
             </div>
             <div class="step" id="step-3">
                 <div class="step-circle">3</div>
-                <div class="step-label">挂载盘符</div>
+                <div class="step-label">Mount Drive</div>
             </div>
         </div>
     </div>
 
     <footer>
-        <p>💡 提示：本网页基于 Web Serial API 技术安全运行，数据完全在本地串口交互，不会上传任何数据。</p>
-        <p>因浏览器安全沙箱限制，网页端成功发送挂载指令后，<b>需要您手动打开电脑上的「此电脑」</b>查看新出现的盘符。</p>
+        <p>💡 Note: This tool runs securely based on the Web Serial API. All data is processed locally over the serial port; no data is uploaded.</p>
+        <p>Due to browser security sandbox restrictions, after successfully sending the mount command, <b>you need to manually open "This PC" (File Explorer)</b> on your computer to view the newly mounted drive.</p>
     </footer>
 
     <script>
@@ -509,11 +509,20 @@
             unsupportedAlert.style.display = 'block';
             btnConnect.disabled = true;
             if (window.location.protocol === 'file:') {
-                document.getElementById('unsupported-title').innerHTML = '⚠️ 无法直接双击运行本地 HTML 文件:';
-                document.getElementById('unsupported-desc').innerHTML = '由于浏览器的安全策略，Web Serial API 必须在<b>安全上下文 (HTTPS 或 localhost)</b> 下运行。<br>👉 请双击运行文件夹中的 <strong>启动本地网页版.bat</strong> 启动本地服务器，或在 GitHub Pages 链接上访问。';
+                document.getElementById('unsupported-title').innerHTML = '⚠️ Cannot run local HTML file directly:';
+                document.getElementById('unsupported-desc').innerHTML = 'Due to browser security policies, the Web Serial API must run in a <b>secure context (HTTPS or localhost)</b>.<br>👉 Please double-click <strong>启动本地网页版.bat</strong> in the folder to start the local server, or access via a GitHub Pages link.';
+            } else if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                document.getElementById('unsupported-title').innerHTML = '⚠️ Browser Security Restriction (Insecure HTTP Context):';
+                document.getElementById('unsupported-desc').innerHTML = `Due to browser security policies, the Web Serial API must run in an HTTPS or localhost environment.<br>
+                You are currently using an HTTP IP address (<strong>${window.location.hostname}</strong>).<br><br>
+                <strong>🛠️ How to enable serial port access on this server?</strong><br>
+                1. Copy and open the following URL in your browser: <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">chrome://flags/#unsafely-treat-insecure-origin-as-secure</code> (For Edge, open <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">edge://flags/#unsafely-treat-insecure-origin-as-secure</code>)<br>
+                2. Find the <strong>Insecure origins to be treated as secure</strong> setting and set it to <strong>Enabled</strong>.<br>
+                3. Enter the current page's root address: <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;">http://${window.location.host}</code><br>
+                4. Click the <strong>Relaunch</strong> button in the bottom right corner of the browser, reopen this page and it should work properly!`;
             } else {
-                document.getElementById('unsupported-title').innerHTML = '⚠️ 您的浏览器不支持 Web Serial:';
-                document.getElementById('unsupported-desc').innerHTML = '您的浏览器不支持串口通信。请使用最新版的 <strong>Google Chrome</strong> 或 <strong>Microsoft Edge</strong> 浏览器访问本网页。';
+                document.getElementById('unsupported-title').innerHTML = '⚠️ Your browser does not support Web Serial:';
+                document.getElementById('unsupported-desc').innerHTML = 'Your browser does not support serial communication. Please use the latest version of <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> to access this page.';
             }
         }
 
@@ -600,13 +609,13 @@
             resetSteps();
 
             statusDot.className = 'status-dot active';
-            statusText.textContent = '正在连接串口...';
+            statusText.textContent = 'Connecting serial port...';
 
             let port = null;
 
             try {
                 updateStep(1, 'active');
-                log('正在请求用户选择机器人串口...', 'info');
+                log('Requesting user to select robot serial port...', 'info');
 
                 // Request port
                 const filterEnabled = document.getElementById('chk-filter').checked;
@@ -618,99 +627,99 @@
                             ]
                         });
                     } else {
-                        log('请求显示所有可用串口...', 'info');
+                        log('Requesting to show all available serial ports...', 'info');
                         port = await navigator.serial.requestPort();
                     }
                 } catch (err) {
                     if (filterEnabled) {
-                        log('未找到特定PID设备或用户取消，尝试请求显示所有串口...', 'warning');
+                        log('Device with specific PID not found or user cancelled, trying to show all serial ports...', 'warning');
                         port = await navigator.serial.requestPort();
                     } else {
                         throw err;
                     }
                 }
 
-                log('已选择串口，正在打开...', 'info');
+                log('Serial port selected, opening...', 'info');
                 await port.open({ baudRate: 115200 });
-                log('串口连接成功！波特率 115200。', 'success');
+                log('Serial port connected successfully! Baud rate: 115200.', 'success');
                 updateStep(1, 'completed');
 
                 updateStep(2, 'active');
-                log('发送测试激活码 (FF FF 04 46 FD 00 47)...', 'info');
+                log('Sending test activation code (FF FF 04 46 FD 00 47)...', 'info');
                 const enterTestCmd = new Uint8Array([0xff, 0xff, 0x04, 0x46, 0xfd, 0x00, 0x47]);
                 const writer = port.writable.getWriter();
                 await writer.write(enterTestCmd);
                 writer.releaseLock();
 
-                log('等待设备响应...', 'info');
+                log('Waiting for device response...', 'info');
                 const response = await readFrameWithTimeout(port, 1500);
                 let needReboot = false;
 
                 if (response) {
-                    log(`收到响应帧: ${Array.from(response).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ')}`, 'success');
+                    log(`Received response frame: ${Array.from(response).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ')}`, 'success');
                     if (response.length >= 6 && response[3] === 0x46 && response[4] === 0xfd) {
                         if (response[5] === 1) {
                             needReboot = true;
                         }
                     }
                 } else {
-                    log('设备没有回应，或已经处于挂载状态。继续发送挂载命令...', 'warning');
+                    log('No response from device, or already in mount status. Continuing to send mount command...', 'warning');
                 }
 
                 if (needReboot) {
-                    log('⚠️ 设备响应需要重启以激活模式！正在断开，请等待 5 秒重新连入...', 'warning');
+                    log('⚠️ Device responded requiring reboot to activate mode! Disconnecting, please wait 5 seconds to reconnect...', 'warning');
                     await port.close();
 
                     for (let i = 5; i > 0; i--) {
-                        log(`等待重启中... ${i}s`, 'warning');
-                        statusText.textContent = `等待重启... ${i}s`;
+                        log(`Waiting for reboot... ${i}s`, 'warning');
+                        statusText.textContent = `Waiting for reboot... ${i}s`;
                         await sleep(1000);
                     }
 
-                    log('正在尝试自动重新连接已授权串口...', 'info');
-                    statusText.textContent = '重连中...';
+                    log('Attempting to automatically reconnect to authorized serial port...', 'info');
+                    statusText.textContent = 'Reconnecting...';
 
                     const permittedPorts = await navigator.serial.getPorts();
                     if (permittedPorts && permittedPorts.length > 0) {
                         port = permittedPorts[0];
                         await port.open({ baudRate: 115200 });
-                        log('重连成功！重新发送激活码...', 'info');
+                        log('Reconnected successfully! Resending activation code...', 'info');
                         const writer2 = port.writable.getWriter();
                         await writer2.write(enterTestCmd);
                         writer2.releaseLock();
                         await sleep(500);
                     } else {
-                        throw new Error('未找到已授权的重连设备，请重新点击按钮并选择设备。');
+                        throw new Error('No authorized reconnection device found. Please click the button and select the device again.');
                     }
                 }
 
                 updateStep(2, 'completed');
                 updateStep(3, 'active');
 
-                log('发送SD卡挂载指令 (FF FF 03 46 04 4D)...', 'info');
+                log('Sending SD card mount command (FF FF 03 46 04 4D)...', 'info');
                 const sdcardCmd = new Uint8Array([0xff, 0xff, 0x03, 0x46, 0x04, 0x4d]);
                 const writer3 = port.writable.getWriter();
                 await writer3.write(sdcardCmd);
                 writer3.releaseLock();
 
-                log('挂载指令发送完成！延迟释放连接...', 'info');
+                log('Mount command sent successfully! Delaying connection release...', 'info');
                 await sleep(1000);
 
                 await port.close();
-                log('串口已成功关闭并释放！', 'info');
+                log('Serial port closed and released successfully!', 'info');
 
                 updateStep(3, 'completed');
 
                 statusDot.className = 'status-dot active';
-                statusText.textContent = '挂载指令发送成功';
-                log('✨ 挂载操作完成！现在您的电脑应该在识别新的磁盘盘符。', 'success');
-                log('👉 请手动打开电脑的「此电脑」或资源管理器以查看 SD 卡。', 'success');
+                statusText.textContent = 'Mount command sent successfully';
+                log('✨ Mount operation completed! Your PC should now be identifying the new drive.', 'success');
+                log('👉 Please manually open "This PC" or File Explorer on your computer to view the SD card.', 'success');
 
             } catch (error) {
                 console.error(error);
                 statusDot.className = 'status-dot error';
-                statusText.textContent = '操作失败';
-                log(`❌ 发生错误: ${error.message || error}`, 'error');
+                statusText.textContent = 'Operation failed';
+                log(`❌ Error occurred: ${error.message || error}`, 'error');
                 resetSteps();
 
                 if (port && port.readable) {
