@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,9 @@
     <meta name="description" content="通过 Web Serial API 一键激活并挂载乐森机器人的 SD 卡为移动硬盘">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+SC:wght@300;400;700&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
@@ -48,7 +51,7 @@
             position: absolute;
             width: 400px;
             height: 400px;
-            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
             top: 10%;
             left: 15%;
             z-index: -1;
@@ -60,7 +63,7 @@
             position: absolute;
             width: 400px;
             height: 400px;
-            background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, rgba(0,0,0,0) 70%);
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
             bottom: 10%;
             right: 15%;
             z-index: -1;
@@ -159,14 +162,44 @@
         }
 
         @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.3); opacity: 0.7; }
-            100% { transform: scale(1); opacity: 1; }
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.3);
+                opacity: 0.7;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
 
         /* Device Control Section */
         .control-panel {
             margin-bottom: 30px;
+        }
+
+        .filter-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .filter-option input {
+            cursor: pointer;
+            accent-color: var(--accent-primary);
+            width: 16px;
+            height: 16px;
         }
 
         .btn-connect {
@@ -225,12 +258,14 @@
         .console::-webkit-scrollbar {
             width: 6px;
         }
+
         .console::-webkit-scrollbar-track {
-            background: rgba(0,0,0,0.1);
+            background: rgba(0, 0, 0, 0.1);
             border-radius: 10px;
         }
+
         .console::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
         }
 
@@ -243,13 +278,27 @@
         }
 
         @keyframes slideIn {
-            to { opacity: 1; transform: translateY(0); }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        .line-info { color: #38bdf8; }
-        .line-success { color: #4ade80; }
-        .line-warning { color: #fbbf24; }
-        .line-error { color: #f87171; }
+        .line-info {
+            color: #38bdf8;
+        }
+
+        .line-success {
+            color: #4ade80;
+        }
+
+        .line-warning {
+            color: #fbbf24;
+        }
+
+        .line-error {
+            color: #f87171;
+        }
 
         /* Steps progress representation */
         .steps {
@@ -365,12 +414,19 @@
         .reboot-warning {
             animation: flash 1s infinite alternate;
         }
+
         @keyframes flash {
-            from { border-color: rgba(245, 158, 11, 0.3); }
-            to { border-color: rgba(245, 158, 11, 0.8); }
+            from {
+                border-color: rgba(245, 158, 11, 0.3);
+            }
+
+            to {
+                border-color: rgba(245, 158, 11, 0.8);
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="ambient-glow-1"></div>
     <div class="ambient-glow-2"></div>
@@ -379,7 +435,7 @@
         <header>
             <div class="logo-container">
                 <svg viewBox="0 0 24 24">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
             </div>
             <h1 id="title-text">机器人 SD卡挂载工具</h1>
@@ -392,14 +448,19 @@
         </div>
 
         <div class="alert-unsupported" id="unsupported-alert">
-            <strong>⚠️ 浏览器不支持 Web Serial:</strong><br>
-            您的浏览器不支持串口通信。请使用 <strong>Google Chrome</strong> 或 <strong>Microsoft Edge</strong> 浏览器打开此网页，并确保在电脑端访问。
+            <strong id="unsupported-title">⚠️ 浏览器不支持 Web Serial:</strong><br>
+            <span id="unsupported-desc">您的浏览器不支持串口通信。请使用 <strong>Google Chrome</strong> 或 <strong>Microsoft Edge</strong> 浏览器打开此网页，并确保在电脑端访问。</span>
         </div>
 
         <div class="control-panel">
+            <label class="filter-option">
+                <input type="checkbox" id="chk-filter" checked>
+                <span>只过滤显示乐森机器人设备 (PID: 4012)</span>
+            </label>
             <button class="btn-connect" id="btn-connect">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 17l6-6-6-6M12 19h9"/>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 17l6-6-6-6M12 19h9" />
                 </svg>
                 <span>一键连接并挂载 SD 卡</span>
             </button>
@@ -438,7 +499,7 @@
         const statusText = document.getElementById('status-text');
         const unsupportedAlert = document.getElementById('unsupported-alert');
         const stepProgress = document.getElementById('step-progress');
-        
+
         const step1 = document.getElementById('step-1');
         const step2 = document.getElementById('step-2');
         const step3 = document.getElementById('step-3');
@@ -447,6 +508,13 @@
         if (!('serial' in navigator)) {
             unsupportedAlert.style.display = 'block';
             btnConnect.disabled = true;
+            if (window.location.protocol === 'file:') {
+                document.getElementById('unsupported-title').innerHTML = '⚠️ 无法直接双击运行本地 HTML 文件:';
+                document.getElementById('unsupported-desc').innerHTML = '由于浏览器的安全策略，Web Serial API 必须在<b>安全上下文 (HTTPS 或 localhost)</b> 下运行。<br>👉 请双击运行文件夹中的 <strong>启动本地网页版.bat</strong> 启动本地服务器，或在 GitHub Pages 链接上访问。';
+            } else {
+                document.getElementById('unsupported-title').innerHTML = '⚠️ 您的浏览器不支持 Web Serial:';
+                document.getElementById('unsupported-desc').innerHTML = '您的浏览器不支持串口通信。请使用最新版的 <strong>Google Chrome</strong> 或 <strong>Microsoft Edge</strong> 浏览器访问本网页。';
+            }
         }
 
         function log(message, type = 'info') {
@@ -461,7 +529,7 @@
         function updateStep(stepIndex, status) {
             // reset all steps classes
             const steps = [step1, step2, step3];
-            
+
             if (status === 'active') {
                 steps[stepIndex - 1].className = 'step active';
                 if (stepIndex === 1) stepProgress.style.width = '0%';
@@ -485,18 +553,18 @@
         async function readFrameWithTimeout(port, timeoutMs = 2000) {
             const reader = port.readable.getReader();
             let buffer = new Uint8Array(0);
-            
+
             function concatTypedArrays(a, b) {
                 const c = new Uint8Array(a.length + b.length);
                 c.set(a, 0);
                 c.set(b, a.length);
                 return c;
             }
-            
+
             const timeoutId = setTimeout(() => {
-                reader.cancel().catch(() => {});
+                reader.cancel().catch(() => { });
             }, timeoutMs);
-            
+
             try {
                 while (true) {
                     const { value, done } = await reader.read();
@@ -504,7 +572,7 @@
                         buffer = concatTypedArrays(buffer, value);
                         // Search for FF FF
                         for (let i = 0; i < buffer.length - 1; i++) {
-                            if (buffer[i] === 0xff && buffer[i+1] === 0xff) {
+                            if (buffer[i] === 0xff && buffer[i + 1] === 0xff) {
                                 if (buffer.length >= i + 3) {
                                     const length = buffer[i + 2];
                                     if (buffer.length >= i + 3 + length) {
@@ -530,44 +598,54 @@
         btnConnect.addEventListener('click', async () => {
             btnConnect.disabled = true;
             resetSteps();
-            
+
             statusDot.className = 'status-dot active';
             statusText.textContent = '正在连接串口...';
-            
+
             let port = null;
-            
+
             try {
                 updateStep(1, 'active');
                 log('正在请求用户选择机器人串口...', 'info');
-                
+
                 // Request port
+                const filterEnabled = document.getElementById('chk-filter').checked;
                 try {
-                    port = await navigator.serial.requestPort({
-                        filters: [
-                            { usbProductId: 0x4012 }
-                        ]
-                    });
+                    if (filterEnabled) {
+                        port = await navigator.serial.requestPort({
+                            filters: [
+                                { usbProductId: 0x4012 }
+                            ]
+                        });
+                    } else {
+                        log('请求显示所有可用串口...', 'info');
+                        port = await navigator.serial.requestPort();
+                    }
                 } catch (err) {
-                    log('未过滤到特定PID设备，请求所有可用串口...', 'warning');
-                    port = await navigator.serial.requestPort();
+                    if (filterEnabled) {
+                        log('未找到特定PID设备或用户取消，尝试请求显示所有串口...', 'warning');
+                        port = await navigator.serial.requestPort();
+                    } else {
+                        throw err;
+                    }
                 }
 
                 log('已选择串口，正在打开...', 'info');
                 await port.open({ baudRate: 115200 });
                 log('串口连接成功！波特率 115200。', 'success');
                 updateStep(1, 'completed');
-                
+
                 updateStep(2, 'active');
                 log('发送测试激活码 (FF FF 04 46 FD 00 47)...', 'info');
                 const enterTestCmd = new Uint8Array([0xff, 0xff, 0x04, 0x46, 0xfd, 0x00, 0x47]);
                 const writer = port.writable.getWriter();
                 await writer.write(enterTestCmd);
                 writer.releaseLock();
-                
+
                 log('等待设备响应...', 'info');
                 const response = await readFrameWithTimeout(port, 1500);
                 let needReboot = false;
-                
+
                 if (response) {
                     log(`收到响应帧: ${Array.from(response).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ')}`, 'success');
                     if (response.length >= 6 && response[3] === 0x46 && response[4] === 0xfd) {
@@ -582,16 +660,16 @@
                 if (needReboot) {
                     log('⚠️ 设备响应需要重启以激活模式！正在断开，请等待 5 秒重新连入...', 'warning');
                     await port.close();
-                    
+
                     for (let i = 5; i > 0; i--) {
                         log(`等待重启中... ${i}s`, 'warning');
                         statusText.textContent = `等待重启... ${i}s`;
                         await sleep(1000);
                     }
-                    
+
                     log('正在尝试自动重新连接已授权串口...', 'info');
                     statusText.textContent = '重连中...';
-                    
+
                     const permittedPorts = await navigator.serial.getPorts();
                     if (permittedPorts && permittedPorts.length > 0) {
                         port = permittedPorts[0];
@@ -605,40 +683,40 @@
                         throw new Error('未找到已授权的重连设备，请重新点击按钮并选择设备。');
                     }
                 }
-                
+
                 updateStep(2, 'completed');
                 updateStep(3, 'active');
-                
+
                 log('发送SD卡挂载指令 (FF FF 03 46 04 4D)...', 'info');
                 const sdcardCmd = new Uint8Array([0xff, 0xff, 0x03, 0x46, 0x04, 0x4d]);
                 const writer3 = port.writable.getWriter();
                 await writer3.write(sdcardCmd);
                 writer3.releaseLock();
-                
+
                 log('挂载指令发送完成！延迟释放连接...', 'info');
                 await sleep(1000);
-                
+
                 await port.close();
                 log('串口已成功关闭并释放！', 'info');
-                
+
                 updateStep(3, 'completed');
-                
+
                 statusDot.className = 'status-dot active';
                 statusText.textContent = '挂载指令发送成功';
                 log('✨ 挂载操作完成！现在您的电脑应该在识别新的磁盘盘符。', 'success');
                 log('👉 请手动打开电脑的「此电脑」或资源管理器以查看 SD 卡。', 'success');
-                
+
             } catch (error) {
                 console.error(error);
                 statusDot.className = 'status-dot error';
                 statusText.textContent = '操作失败';
                 log(`❌ 发生错误: ${error.message || error}`, 'error');
                 resetSteps();
-                
+
                 if (port && port.readable) {
                     try {
                         await port.close();
-                    } catch(e) {}
+                    } catch (e) { }
                 }
             } finally {
                 btnConnect.disabled = false;
@@ -646,4 +724,5 @@
         });
     </script>
 </body>
+
 </html>
